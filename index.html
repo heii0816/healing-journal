@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>我的療癒成長日記</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --bg: #0f0f1e;
+  --card: #1a1a30;
+  --card2: #141428;
+  --border: rgba(255,255,255,0.08);
+  --accent: #e8875a;
+  --accent-dim: rgba(232,135,90,0.15);
+  --text: #f0ece6;
+  --muted: #8888aa;
+  --tab-h: 68px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: linear-gradient(180deg, #06061a 0%, #0d0920 40%, #180c22 70%, #200d1a 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Hiragino Sans GB', sans-serif;
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+}
+
+.content {
+  padding: 28px 16px calc(var(--tab-h) + 28px);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Tab Bar ── */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  height: var(--tab-h);
+  background: #111122;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.tab-btn .icon { font-size: 22px; line-height: 1; }
+.tab-btn.active { color: var(--accent); }
+
+/* ── Cards ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.page-head { margin-bottom: 28px; }
+.page-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.page-title { font-size: 24px; font-weight: 700; line-height: 1.2; }
+
+.section-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+
+/* ── Textarea ── */
+textarea {
+  width: 100%;
+  min-height: 100px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.8;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+textarea:focus { border-color: rgba(232,135,90,0.35); }
+textarea::placeholder { color: var(--muted); }
+
+/* ── Input ── */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
+
+input[type="text"], input[type="search"], input[type="number"], input[type="date"] {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+input:focus { border-color: rgba(232,135,90,0.35); }
+input::placeholder { color: var(--muted); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+.btn:active { transform: scale(0.96); opacity: 0.8; }
+
+.btn-primary { background: var(--accent); color: white; }
+.btn-ghost { background: rgba(255,255,255,0.08); color: var(--text); }
+.btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 10px; }
+.btn-full { width: 100%; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+/* ── Chakra Tags ── */
+.chakra-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── Text helpers ── */
+.text-sm { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.text-xs { font-size: 11px; color: var(--muted); }
+
+/* ── Big number ── */
+.big-num { font-size: 44px; font-weight: 700; color: var(--accent); line-height: 1; }
+
+/* ── Progress bar ── */
+.prog-track {
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.prog-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+/* ── Detect result ── */
+.detect-box {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: none;
+}
+.detect-box.show { display: block; }
+
+/* ── Collapsible ── */
+.coll-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.coll-content { display: none; margin-top: 12px; }
+.coll-content.open { display: block; }
+
+/* ── Entry list ── */
+.entry-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.entry-item:last-child { border-bottom: none; }
+.entry-item:active { opacity: 0.7; }
+.entry-date { font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; }
+.entry-preview {
+  font-size: 14px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.entry-tags { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+
+/* ── Chakra chart ── */
+.chakra-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.chakra-name { width: 52px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
+.chakra-track { flex: 1; height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+.chakra-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.chakra-count { width: 20px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+
+/* ── Milestones ── */
+.ms-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.ms-item:last-child { border-bottom: none; }
+.ms-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: all 0.2s;
+}
+.ms-check.done { background: var(--accent); border-color: var(--accent); color: white; }
+.ms-label { flex: 1; font-size: 14px; line-height: 1.4; }
+.ms-label.done { color: var(--muted); text-decoration: line-through; }
+.ms-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; line-height: 1; }
+
+/* ── Countdown ── */
+.countdown { text-align: center; padding: 12px 0 4px; }
+.countdown-num { font-size: 52px; font-weight: 700; color: var(--accent); line-height: 1; }
+.countdown-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 18, 0.88);
+  z-index: 150;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  width: 100%;
+  max-width: 430px;
+  background: #1a1a30;
+  border-radius: 22px 22px 0 0;
+  padding: 16px 20px calc(var(--tab-h) + 20px);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.modal-handle {
+  width: 36px; height: 4px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: calc(var(--tab-h) + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: #2a2a44;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  padding: 9px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  opacity: 0;
+  transition: all 0.25s;
+  z-index: 200;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 32px 0; color: var(--muted); font-size: 14px; line-height: 2; }
+
+/* ── Splash Screen ── */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  cursor: pointer;
+  overflow: hidden;
+  transition: opacity 0.7s ease;
+  max-width: 430px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+#splash.fade-out { opacity: 0; pointer-events: none; }
+#splash img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+.splash-hint {
+  position: absolute;
+  bottom: 32px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: rgba(245,232,204,0.5);
+}
+
+/* ── Fake input (contenteditable，防 Safari 聯絡人建議) ── */
+.fake-input {
+  min-height: 42px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+  cursor: text;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fake-input:focus { border-color: rgba(232,135,90,0.35); }
+.fake-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ── Status Tags ── */
+.status-draft { background: rgba(136,136,170,0.15); color: var(--muted); }
+.status-review { background: rgba(232,135,90,0.18); color: var(--accent); }
+.status-scheduled { background: rgba(66,153,225,0.15); color: #63b3ed; }
+.status-published { background: rgba(72,187,120,0.15); color: #68d391; }
+
+/* ── Caption items ── */
+.cap-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.cap-item:last-child { border-bottom: none; }
+.cap-item:active { opacity: 0.7; }
+.cap-hook { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 6px; }
+.cap-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* ── Countdown card ── */
+.cd-card {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cd-num { font-size: 38px; font-weight: 700; color: var(--accent); line-height: 1; min-width: 60px; text-align: center; }
+.cd-unit { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.cd-name { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.cd-date { font-size: 12px; color: var(--muted); }
+
+/* ── Sign-in Overlay ── */
+#signin-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── User Bar ── */
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- ── Splash Screen ── -->
+<div id="splash" onclick="dismissSplash()">
+  <img src="splash-bg.png" alt="">
+  <div class="splash-hint">點一下開始</div>
+</div>
+
+<div id="signin-overlay">
+  <div style="text-align:center; padding:0 32px; max-width:320px;">
+    <div style="font-size:52px; margin-bottom:28px;">🌿</div>
+    <div style="font-size:22px; font-weight:700; margin-bottom:10px;">療癒成長日記</div>
+    <div class="text-sm" style="margin-bottom:40px; line-height:1.8;">你的私人空間<br>只有你能進入</div>
+    <button class="btn btn-primary" style="width:100%;" onclick="signIn()">用 Google 登入</button>
+  </div>
+</div>
+
+<div class="content" id="main-content" style="display:none;">
+
+  <div class="user-bar">
+    <span class="text-xs" id="user-email"></span>
+    <button class="btn btn-ghost btn-sm" style="padding:5px 10px; font-size:11px;" onclick="signOut()">登出</button>
+  </div>
+
+  <!-- 隱藏欄位，供 Playwright 自動存入使用 -->
+  <textarea id="analysis-input" style="display:none;"></textarea>
+  <textarea id="caption-input" style="display:none;"></textarea>
+
+  <!-- ═══════════════════════════ -->
+  <!-- TAB 0: 寫日記              -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-panel active" id="tab-journal">
+    <div class="page-head">
+      <div class="page-label">寫日記</div>
+      <div class="page-title" id="journal-date-label">—</div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">日期</div>
+      <input type="date" id="journal-date" style="margin-bottom:16px;" onchange="onDateChange()">
+      <div class="section-label">寫下這天</div>
+      <textarea id="diary-input" placeholder="今天發生了什麼？身體有什麼感覺？心情是怎樣的？" oninput="autoResize(this)"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="copyForClaude()">複製給 Claude</button>
+        <button class="btn btn-primary btn-sm" onclick="runAnalysis()">分析脈輪</button>
+      </div>
+
+      <div class="detect-box" id="detect-box">
+        <div class="section-label" style="margin-bottom:14px;">脈輪分析結果</div>
+        <div id="detect-result"></div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="saveEntry()" style="margin-top:14px;">存入日記庫</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- TAB 1: 日記庫              -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-panel" id="tab-archive">
+    <div class="page-head">
+      <div class="page-label">日記庫</div>
+      <div class="page-title" id="archive-count">0 則</div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <input type="text" id="archive-search" placeholder="搜尋日記內容或日期…" oninput="filterArchive()">
+    </div>
+    <div class="card" id="entries-list">
+      <div class="empty">還沒有日記<br>貼給 Claude，我幫你存進來</div>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:4px;">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">匯出 JSON 備份</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-input').click()">匯入 JSON</button>
+      <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)">
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- TAB 3: 脈輪紀錄            -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-panel" id="tab-chakra">
+    <div class="page-head">
+      <div class="page-label">脈輪紀錄</div>
+      <div class="page-title">失衡模式</div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div class="section-label" style="margin-bottom:0;">出現頻率</div>
+        <div style="display:flex; gap:4px;">
+          <button id="chart-all-btn" class="btn btn-primary btn-sm" style="padding:5px 12px; font-size:12px;" onclick="setChartMode('all')">全部</button>
+          <button id="chart-30d-btn" class="btn btn-ghost btn-sm" style="padding:5px 12px; font-size:12px;" onclick="setChartMode('30d')">近 30 天</button>
+        </div>
+      </div>
+      <div id="chakra-chart"></div>
+      <div class="text-sm" id="chakra-chart-desc" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">七大脈輪速查</div>
+      <div id="chakra-ref"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- TAB 4: 文案庫              -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-panel" id="tab-caption">
+    <div class="page-head">
+      <div class="page-label">內容管理</div>
+      <div class="page-title">文案庫</div>
+    </div>
+
+    <div style="display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;">
+      <button id="cf-all" class="btn btn-primary btn-sm" onclick="setCaptionFilter('all')" style="white-space:nowrap;">全部</button>
+      <button id="cf-draft" class="btn btn-ghost btn-sm" onclick="setCaptionFilter('draft')" style="white-space:nowrap;">草稿</button>
+      <button id="cf-review" class="btn btn-ghost btn-sm" onclick="setCaptionFilter('review')" style="white-space:nowrap;">確認中</button>
+      <button id="cf-scheduled" class="btn btn-ghost btn-sm" onclick="setCaptionFilter('scheduled')" style="white-space:nowrap;">已排程</button>
+      <button id="cf-published" class="btn btn-ghost btn-sm" onclick="setCaptionFilter('published')" style="white-space:nowrap;">已發布</button>
+    </div>
+
+    <div class="card" id="captions-list">
+      <div class="empty">還沒有文案<br>把日記貼給 Claude，我幫你生成存進來</div>
+    </div>
+
+    <!-- Hidden inputs for Playwright -->
+    <textarea id="cap-hook-input" style="display:none;"></textarea>
+    <textarea id="cap-content-input" style="display:none;"></textarea>
+    <input type="text" id="cap-date-input" style="display:none;">
+    <input type="text" id="cap-type-input" style="display:none;">
+    <textarea id="cap-materials-input" style="display:none;"></textarea>
+    <input type="text" id="cap-source-input" style="display:none;">
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <!-- TAB 5: 目標                -->
+  <!-- ═══════════════════════════ -->
+  <div class="tab-panel" id="tab-goal">
+    <div class="page-head">
+      <div class="page-label">近期目標</div>
+      <div class="page-title">目標</div>
+    </div>
+
+    <div class="section-label" style="margin-bottom:10px;">倒數計時</div>
+    <div id="countdowns-list"></div>
+
+    <div class="card">
+      <div class="section-label">新增倒數</div>
+      <div contenteditable="plaintext-only" id="cd-name-input" class="fake-input" data-placeholder="目標名稱（例：加拿大獨旅）" style="margin-bottom:8px;"></div>
+      <input type="date" id="cd-date-input" style="margin-bottom:10px;">
+      <button class="btn btn-primary btn-sm btn-full" onclick="addCountdown()">新增倒數</button>
+    </div>
+
+    <div class="card">
+      <div class="section-label">里程碑</div>
+      <div id="goal-milestones"></div>
+      <div class="divider"></div>
+      <div style="display:flex; gap:8px;">
+        <div contenteditable="plaintext-only" id="goal-ms-input" class="fake-input" data-placeholder="新增里程碑..."></div>
+        <button class="btn btn-primary btn-sm" onclick="addGoalMs()">新增</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ── Tab Bar ── -->
+<nav class="tab-bar" id="app-tabbar" style="display:none;">
+  <button class="tab-btn active" id="nav-journal" onclick="switchTab('journal')">
+    <span class="icon">✏️</span>寫日記
+  </button>
+  <button class="tab-btn" id="nav-archive" onclick="switchTab('archive')">
+    <span class="icon">📖</span>日記庫
+  </button>
+  <button class="tab-btn" id="nav-chakra" onclick="switchTab('chakra')">
+    <span class="icon">🌀</span>脈輪紀錄
+  </button>
+  <button class="tab-btn" id="nav-caption" onclick="switchTab('caption')">
+    <span class="icon">✨</span>文案庫
+  </button>
+  <button class="tab-btn" id="nav-goal" onclick="switchTab('goal')">
+    <span class="icon">🎯</span>目標
+  </button>
+</nav>
+
+<!-- ── Entry Modal ── -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// SPLASH
+// ═══════════════════════════════════════
+
+function dismissSplash() {
+  const s = document.getElementById('splash');
+  if (!s) return;
+  s.classList.add('fade-out');
+  setTimeout(() => s.remove(), 750);
+}
+
+// ═══════════════════════════════════════
+// CHAKRA DATA
+// ═══════════════════════════════════════
+
+const CHAKRAS = [
+  {
+    id: 'root', name: '海底輪', emoji: '🔴', color: '#e53e3e',
+    desc: '根基、安全感、家人關係',
+    blockDesc: '恐懼感、不安全感、對未來焦慮、原生家庭議題',
+    keywords: ['不安全感','沒有安全感','恐懼','害怕','恐慌','孤獨感','焦慮','沒有依靠','被拋棄感','不值得','飄著','沒有根','對未來恐懼','不知道自己要什麼','生存壓力','經濟壓力','不知道可以依靠誰','不知道自己是誰','根基不穩','無法安定']
+  },
+  {
+    id: 'sacral', name: '臍輪', emoji: '🟠', color: '#e97f4b',
+    desc: '創造力、情緒流動',
+    blockDesc: '情緒壓抑、創造力枯竭、罪惡感',
+    keywords: ['罪惡感','壓抑情緒','麻木','無感','無趣','沒有活力','情緒卡住','情緒出不來','悶著','不讓自己開心','覺得不應該享受','創造力枯竭','情緒壓抑','不知道自己想要什麼','不流動']
+  },
+  {
+    id: 'solar', name: '太陽輪', emoji: '🟡', color: '#d4a017',
+    desc: '行動力、自我展現',
+    blockDesc: '猶豫不決、缺乏自信、情緒性胃痛',
+    keywords: ['胃縮','胃痛','情緒胃痛','猶豫不決','自我懷疑','是不是我的問題','是不是我不好','沒有自信','不敢行動','怕做錯','不確定自己','覺得自己不夠好','不敢展現自己','做了又怕','不知道有沒有能力','缺乏自信','不確定要不要做']
+  },
+  {
+    id: 'heart', name: '心輪', emoji: '💚', color: '#48bb78',
+    desc: '愛、連結、開放',
+    blockDesc: '呼吸不順、胸口緊、難以接受或給予愛',
+    keywords: ['呼吸不順','胸悶','胸口緊','不敢愛','不敢靠近','怕受傷','不想連結','疏離感','隔離感','把心關起來','難以接受關心','難以接受愛','愛無法流動','心很重','心封閉']
+  },
+  {
+    id: 'throat', name: '喉輪', emoji: '🔵', color: '#4299e1',
+    desc: '表達、溝通',
+    blockDesc: '說不出口、壓抑真實感受、言行不一',
+    keywords: ['說不出口','沒辦法說','壓下去沒說','沒有開口','想說但說不出','沒有表達出來','忍住沒說','悶在心裡','話在心裡','說不清楚','沒講出真心話','怕說錯','心裡有話但','沉默']
+  },
+  {
+    id: 'thirdEye', name: '眉心輪', emoji: '🟣', color: '#9f7aea',
+    desc: '直覺、洞察',
+    blockDesc: '思緒混亂、失去方向感、過度依賴他人判斷',
+    keywords: ['思緒混亂','迷茫','看不清楚','失去方向','不知所措','搞不清楚','頭悶','眉頭緊','不知道該怎麼辦','想太多轉不停','腦子停不下來','過度分析','不相信自己的直覺','依賴別人判斷','依賴他人判斷']
+  },
+  {
+    id: 'crown', name: '頂輪', emoji: '⚪', color: '#a0aec0',
+    desc: '靈魂、高我連結',
+    blockDesc: '感覺與生命藍圖斷線、失去意義感',
+    keywords: ['失去意義感','找不到意義','感覺斷線','不知道自己來這裡幹嗎','對一切無感','靈魂疲憊','與自己斷線','虛無感','空洞感','生命意義不明','失去連結']
+  }
+];
+
+// ═══════════════════════════════════════
+// STORAGE (Firebase)
+// ═══════════════════════════════════════
+
+let DATA = null;
+let currentUser = null;
+
+function userRef() {
+  return firebase.database().ref('users/' + currentUser.uid);
+}
+
+function load() {
+  return DATA || initData();
+}
+
+function save(data) {
+  DATA = data;
+  if (currentUser) userRef().set(data).catch(() => {});
+}
+
+function initData() {
+  return {
+    entries: [],
+    captions: [],
+    goals: {
+      countdowns: [
+        { id: 'cd_resign', name: '離職倒數', date: '2026-12-31' }
+      ],
+      milestones: [
+        { id: 'm1', label: '買齊露營裝備', done: true },
+        { id: 'm2', label: '6 月中跟朋友去露營', done: false },
+        { id: 'm3', label: '每個月露營一次', done: false },
+        { id: 'm4', label: '加拿大獨旅規劃啟動', done: false },
+        { id: 'm5', label: '加拿大機票訂好', done: false },
+        { id: 'm6', label: '年底離職準備完成', done: false }
+      ]
+    }
+  };
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+
+function today() {
+  const d = new Date();
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d - off).toISOString().split('T')[0];
+}
+
+function thisMonth() { return today().slice(0, 7); }
+
+function fmtDate(s) {
+  const [y, m, d] = s.split('-');
+  return `${y} 年 ${+m} 月 ${+d} 日`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// ═══════════════════════════════════════
+// CHAKRA DETECTION
+// ═══════════════════════════════════════
+
+function detectChakras(text) {
+  const scores = {};
+  const hits = {};
+  CHAKRAS.forEach(c => { scores[c.id] = 0; hits[c.id] = []; });
+
+  CHAKRAS.forEach(c => {
+    c.keywords.forEach(kw => {
+      if (text.includes(kw)) {
+        scores[c.id] += kw.length >= 4 ? 2 : 1;
+        if (!hits[c.id].includes(kw)) hits[c.id].push(kw);
+      }
+    });
+  });
+
+  return CHAKRAS
+    .filter(c => scores[c.id] > 0)
+    .sort((a, b) => scores[b.id] - scores[a.id])
+    .slice(0, 3)
+    .map(c => ({ ...c, hits: hits[c.id].slice(0, 3) }));
+}
+
+// ═══════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════
+
+function switchTab(tab) {
+  ['journal','archive','chakra','caption','goal'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('nav-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'archive') renderArchive();
+  if (tab === 'chakra') renderChakra();
+  if (tab === 'caption') renderCaptions();
+  if (tab === 'goal') renderGoals();
+}
+
+function onDateChange() {
+  const val = document.getElementById('journal-date').value;
+  document.getElementById('journal-date-label').textContent = val ? fmtDate(val) : '—';
+
+  // 如果該日期已有記錄，帶入舊內容
+  if (!val) return;
+  const existing = load().entries.find(e => e.date === val);
+  const ta = document.getElementById('diary-input');
+  ta.value = existing ? existing.text : '';
+  autoResize(ta);
+  document.getElementById('detect-box').classList.remove('show');
+  if (existing) showToast(`已載入 ${fmtDate(val)} 的記錄`);
+}
+
+function runAnalysis() {
+  const text = document.getElementById('diary-input').value.trim();
+  if (!text) { showToast('先寫點日記再分析'); return; }
+
+  const results = detectChakras(text);
+  const box = document.getElementById('detect-box');
+  const res = document.getElementById('detect-result');
+
+  if (!results.length) {
+    res.innerHTML = `<div class="text-sm" style="padding:8px 0;">沒有偵測到明顯的脈輪失衡關鍵字。<br>可以試著描述身體感覺（胸口緊、胃不舒服、呼吸不順等）或情緒狀態。</div>`;
+  } else {
+    res.innerHTML = results.map((c, i) => `
+      <div style="margin-bottom:${i < results.length-1 ? '20px' : '0'};">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font-size:22px;">${c.emoji}</span>
+          <div>
+            <div style="font-weight:600; font-size:15px; color:${c.color};">${c.name}</div>
+            <div class="text-xs">${c.desc}</div>
+          </div>
+        </div>
+        <div style="background:${c.color}12; border-left:3px solid ${c.color}; padding:10px 12px; border-radius:0 8px 8px 0; margin-bottom:8px;">
+          <div class="text-xs" style="margin-bottom:4px; color:var(--muted);">日記中的線索</div>
+          <div style="font-size:13px;">「${c.hits.join('」、「')}」等字詞</div>
+        </div>
+        <div style="font-size:13px; line-height:1.6; color:var(--muted);">
+          <span style="color:${c.color}; font-weight:500;">失衡時：</span>${c.blockDesc}
+        </div>
+      </div>
+    `).join('<div class="divider"></div>');
+  }
+
+  box.classList.add('show');
+}
+
+function copyForClaude() {
+  const text = document.getElementById('diary-input').value.trim();
+  if (!text) { showToast('先寫點日記再複製'); return; }
+
+  const date = document.getElementById('journal-date').value || today();
+  const msg = `以下是我的日記，請幫我：
+1. 分析哪幾個脈輪可能失衡（指出日記中哪些身體反應或情緒線索對應哪個脈輪）
+2. 用 SWIPE 結構生成一篇 @hsinyikung IG 文案草稿（主軸是「把生活還給自己」，主題涵蓋療癒、自我覺察、慢生活）
+
+日期：${date}
+日記內容：
+${text}`;
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(msg).then(() => showToast('已複製！貼到 Claude 對話視窗'));
+  } else {
+    showToast('請手動複製上方內容');
+  }
+}
+
+function saveEntry() {
+  const text = document.getElementById('diary-input').value.trim();
+  if (!text) { showToast('日記內容不能是空的'); return; }
+
+  const date = document.getElementById('journal-date').value || today();
+  const chakras = detectChakras(text).map(c => c.id);
+  const analysis = document.getElementById('analysis-input').value.trim();
+  const caption = document.getElementById('caption-input').value.trim();
+
+  const data = load();
+  const idx = data.entries.findIndex(e => e.date === date);
+  const entry = { date, text, chakras, analysis, caption, saved: new Date().toISOString() };
+
+  if (idx >= 0) { data.entries[idx] = entry; showToast('已更新今日日記 ✓'); }
+  else { data.entries.unshift(entry); showToast('已存入日記庫 ✓'); }
+
+  save(data);
+
+  document.getElementById('diary-input').value = '';
+  document.getElementById('analysis-input').value = '';
+  document.getElementById('caption-input').value = '';
+  document.getElementById('detect-box').classList.remove('show');
+  autoResize(document.getElementById('diary-input'));
+}
+
+function exportData() {
+  const data = load();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sk-journal-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已匯出 JSON 備份');
+}
+
+// ═══════════════════════════════════════
+// TAB 2: ARCHIVE
+// ═══════════════════════════════════════
+
+let archiveFilter = '';
+
+function filterArchive() {
+  archiveFilter = document.getElementById('archive-search').value.trim();
+  renderArchive();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.entries || !Array.isArray(imported.entries)) {
+        showToast('格式不正確，請選擇正確的備份檔案'); return;
+      }
+      const data = load();
+      let added = 0, updated = 0;
+      imported.entries.forEach(ie => {
+        const idx = data.entries.findIndex(x => x.date === ie.date);
+        if (idx >= 0) { data.entries[idx] = ie; updated++; }
+        else { data.entries.push(ie); added++; }
+      });
+      data.entries.sort((a, b) => b.date.localeCompare(a.date));
+      save(data);
+      renderArchive();
+      showToast(`匯入完成：新增 ${added} 則，更新 ${updated} 則`);
+    } catch { showToast('讀取失敗，請確認檔案格式'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function deleteEntry(date) {
+  if (!confirm(`確定要刪除 ${fmtDate(date)} 的日記嗎？`)) return;
+  const data = load();
+  data.entries = data.entries.filter(e => e.date !== date);
+  save(data);
+  document.getElementById('modal').classList.remove('open');
+  renderArchive();
+  showToast('已刪除');
+}
+
+function renderArchive() {
+  const data = load();
+  const kw = archiveFilter.toLowerCase();
+  const filtered = kw
+    ? data.entries.filter(e => e.text.toLowerCase().includes(kw) || e.date.includes(kw))
+    : data.entries;
+
+  document.getElementById('archive-count').textContent =
+    kw ? `${filtered.length} / ${data.entries.length} 則` : `${data.entries.length} 則`;
+
+  const list = document.getElementById('entries-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty">${kw ? '找不到相符的日記' : '還沒有日記<br>去今日分頁寫第一篇吧'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const tags = (e.chakras || []).map(id => {
+      const c = CHAKRAS.find(x => x.id === id);
+      return c ? `<span class="chakra-tag" style="background:${c.color}1a; color:${c.color}; font-size:11px;">${c.emoji} ${c.name}</span>` : '';
+    }).join('');
+    const captionBadge = e.caption ? `<span class="chakra-tag" style="background:rgba(255,255,255,0.07); color:var(--muted); font-size:11px;">文案已存</span>` : '';
+
+    return `
+      <div class="entry-item" onclick="openEntry('${e.date}')">
+        <div class="entry-date">${fmtDate(e.date)}</div>
+        <div class="entry-preview">${e.text}</div>
+        <div class="entry-tags">${tags}${captionBadge}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openEntry(date) {
+  const data = load();
+  const e = data.entries.find(x => x.date === date);
+  if (!e) return;
+
+  const tags = (e.chakras || []).map(id => {
+    const c = CHAKRAS.find(x => x.id === id);
+    return c ? `<span class="chakra-tag" style="background:${c.color}22; color:${c.color};">${c.emoji} ${c.name}</span>` : '';
+  }).join(' ');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="section-label">${fmtDate(e.date)}</div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">${tags || '<span class="text-xs">無脈輪標記</span>'}</div>
+    <div style="font-size:15px; line-height:1.8; white-space:pre-wrap; margin-bottom:4px;">${e.text}</div>
+    ${e.analysis ? `<div class="divider"></div><div class="section-label">脈輪分析</div><div style="font-size:14px; line-height:1.7; color:var(--muted); white-space:pre-wrap;">${e.analysis}</div>` : ''}
+    ${e.caption ? `<div class="divider"></div><div class="section-label">IG 文案</div><div style="font-size:14px; line-height:1.8; white-space:pre-wrap;">${e.caption}</div><button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="copyCaption('${date}')">複製文案</button>` : ''}
+    <div class="divider"></div>
+    <button class="btn btn-ghost btn-sm btn-full" style="color:#c0504a;" onclick="deleteEntry('${date}')">刪除這篇日記</button>
+    <div style="height:20px;"></div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function copyCaption(date) {
+  const e = load().entries.find(x => x.date === date);
+  if (!e?.caption) return;
+  navigator.clipboard.writeText(e.caption).then(() => showToast('文案已複製'));
+}
+
+function closeModal(evt) {
+  if (evt.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+  }
+}
+
+// ═══════════════════════════════════════
+// TAB 3: CHAKRA CHART
+// ═══════════════════════════════════════
+
+let chartMode = 'all';
+
+function setChartMode(mode) {
+  chartMode = mode;
+  document.getElementById('chart-all-btn').className = `btn btn-sm ${mode === 'all' ? 'btn-primary' : 'btn-ghost'}`;
+  document.getElementById('chart-30d-btn').className = `btn btn-sm ${mode === '30d' ? 'btn-primary' : 'btn-ghost'}`;
+  renderChakra();
+}
+
+function renderChakra() {
+  const data = load();
+  const counts = {};
+  CHAKRAS.forEach(c => counts[c.id] = 0);
+
+  let entries = data.entries;
+  if (chartMode === '30d') {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    entries = data.entries.filter(e => e.date >= cutoffStr);
+  }
+
+  entries.forEach(e => (e.chakras || []).forEach(id => { if (counts[id] !== undefined) counts[id]++; }));
+
+  const max = Math.max(...Object.values(counts), 1);
+
+  document.getElementById('chakra-chart').innerHTML = CHAKRAS.map(c => `
+    <div class="chakra-row">
+      <div class="chakra-name">${c.emoji} ${c.name}</div>
+      <div class="chakra-track">
+        <div class="chakra-fill" style="width:${(counts[c.id]/max)*100}%; background:${c.color};"></div>
+      </div>
+      <div class="chakra-count">${counts[c.id]}</div>
+    </div>
+  `).join('');
+
+  const desc = chartMode === '30d'
+    ? `近 30 天，共 ${entries.length} 則日記`
+    : `全部紀錄，共 ${entries.length} 則日記`;
+  document.getElementById('chakra-chart-desc').textContent = desc;
+
+  document.getElementById('chakra-ref').innerHTML = CHAKRAS.map(c => `
+    <div style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+        <span>${c.emoji}</span>
+        <span style="font-size:14px; font-weight:600;">${c.name}</span>
+        <span class="text-xs">${c.desc}</span>
+      </div>
+      <div class="text-xs" style="margin-left:26px;">失衡時：${c.blockDesc}</div>
+    </div>
+  `).join('').replace(/<div style="padding[^>]*>([^]*?)<\/div>$/, (m) => m.replace('border-bottom: 1px solid var(--border);',''));
+}
+
+// ═══════════════════════════════════════
+// TAB 4: 文案庫
+// ═══════════════════════════════════════
+
+const STATUS_MAP = {
+  draft:     { label: '草稿',  cls: 'status-draft' },
+  review:    { label: '確認中', cls: 'status-review' },
+  scheduled: { label: '已排程', cls: 'status-scheduled' },
+  published: { label: '已發布', cls: 'status-published' }
+};
+const STATUS_ORDER = ['draft','review','scheduled','published'];
+
+let captionFilter = 'all';
+
+function setCaptionFilter(f) {
+  captionFilter = f;
+  ['all','draft','review','scheduled','published'].forEach(s => {
+    document.getElementById('cf-' + s).className =
+      `btn btn-sm ${s === f ? 'btn-primary' : 'btn-ghost'}`;
+  });
+  renderCaptions();
+}
+
+function renderCaptions() {
+  const data = load();
+  let caps = data.captions || [];
+  if (captionFilter !== 'all') caps = caps.filter(c => c.status === captionFilter);
+
+  caps.sort((a, b) => {
+    if (a.scheduledDate && b.scheduledDate) return a.scheduledDate.localeCompare(b.scheduledDate);
+    if (a.scheduledDate) return -1;
+    if (b.scheduledDate) return 1;
+    return (b.createdAt || '').localeCompare(a.createdAt || '');
+  });
+
+  const list = document.getElementById('captions-list');
+  if (!caps.length) {
+    list.innerHTML = `<div class="empty">${captionFilter === 'all' ? '還沒有文案<br>把日記貼給 Claude，我幫你生成存進來' : '這個狀態下沒有文案'}</div>`;
+    return;
+  }
+
+  const TYPE_LABEL = { carousel: '輪播', single: '單圖', reels: 'Reels' };
+  list.innerHTML = caps.map(c => {
+    const st = STATUS_MAP[c.status] || STATUS_MAP.draft;
+    const dateStr = c.scheduledDate ? `預排 ${c.scheduledDate.slice(5).replace('-','/')}` : '';
+    const typeStr = c.postType ? (TYPE_LABEL[c.postType] || c.postType) : '';
+    const srcStr = c.sourceDiary ? `來自 ${c.sourceDiary.slice(5).replace('-','/')}` : '';
+    return `
+      <div class="cap-item" onclick="openCaption('${c.id}')">
+        <div class="cap-hook">${c.hook || '（無標題）'}</div>
+        <div class="cap-meta">
+          <span class="chakra-tag ${st.cls}">${st.label}</span>
+          ${dateStr ? `<span class="text-xs">${dateStr}</span>` : ''}
+          ${typeStr ? `<span class="text-xs">${typeStr}</span>` : ''}
+          ${srcStr ? `<span class="text-xs">${srcStr}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openCaption(id) {
+  const data = load();
+  const c = data.captions.find(x => x.id === id);
+  if (!c) return;
+
+  const st = STATUS_MAP[c.status] || STATUS_MAP.draft;
+  const nextStatus = STATUS_ORDER[STATUS_ORDER.indexOf(c.status) + 1];
+  const nextLabel = nextStatus ? STATUS_MAP[nextStatus].label : null;
+  const TYPE_LABEL = { carousel: '輪播', single: '單圖', reels: 'Reels' };
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <span class="chakra-tag ${st.cls}">${st.label}</span>
+      ${nextLabel ? `<button class="btn btn-ghost btn-sm" onclick="advanceCaptionStatus('${id}')">→ 標為「${nextLabel}」</button>` : ''}
+    </div>
+    ${c.hook ? `<div style="font-size:15px; font-weight:600; line-height:1.5; margin-bottom:12px;">${c.hook}</div>` : ''}
+    ${c.scheduledDate ? `<div class="text-xs" style="margin-bottom:6px;">預排：${c.scheduledDate}</div>` : ''}
+    ${c.postType ? `<div class="text-xs" style="margin-bottom:6px;">形式：${TYPE_LABEL[c.postType] || c.postType}</div>` : ''}
+    ${c.sourceDiary ? `<div class="text-xs" style="margin-bottom:14px;">來源日記：${c.sourceDiary}</div>` : ''}
+    ${c.content ? `<div class="divider"></div><div class="section-label">完整文案</div><div style="font-size:14px; line-height:1.9; white-space:pre-wrap;">${c.content}</div>` : ''}
+    ${c.materials ? `<div class="divider"></div><div class="section-label">素材備注</div><div style="font-size:14px; line-height:1.7; color:var(--muted); white-space:pre-wrap;">${c.materials}</div>` : ''}
+    <div class="divider"></div>
+    ${c.content ? `<button class="btn btn-ghost btn-sm btn-full" onclick="copyCapEntry('${id}')" style="margin-bottom:8px;">複製文案</button>` : ''}
+    <button class="btn btn-ghost btn-sm btn-full" style="color:#c0504a;" onclick="deleteCaption('${id}')">刪除這則文案</button>
+    <div style="height:20px;"></div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function advanceCaptionStatus(id) {
+  const data = load();
+  const c = data.captions.find(x => x.id === id);
+  if (!c) return;
+  const idx = STATUS_ORDER.indexOf(c.status);
+  if (idx < STATUS_ORDER.length - 1) c.status = STATUS_ORDER[idx + 1];
+  save(data);
+  document.getElementById('modal').classList.remove('open');
+  renderCaptions();
+  showToast('狀態已更新 ✓');
+}
+
+function deleteCaption(id) {
+  if (!confirm('確定要刪除這則文案嗎？')) return;
+  const data = load();
+  data.captions = data.captions.filter(c => c.id !== id);
+  save(data);
+  document.getElementById('modal').classList.remove('open');
+  renderCaptions();
+  showToast('已刪除');
+}
+
+function copyCapEntry(id) {
+  const data = load();
+  const c = data.captions.find(x => x.id === id);
+  if (!c?.content) return;
+  navigator.clipboard.writeText(c.content).then(() => showToast('文案已複製'));
+}
+
+// Called by Playwright to save a new caption entry
+function saveCaption() {
+  const hook      = document.getElementById('cap-hook-input').value.trim();
+  const content   = document.getElementById('cap-content-input').value.trim();
+  const schedDate = document.getElementById('cap-date-input').value.trim();
+  const postType  = document.getElementById('cap-type-input').value.trim();
+  const materials = document.getElementById('cap-materials-input').value.trim();
+  const srcDiary  = document.getElementById('cap-source-input').value.trim();
+
+  if (!content && !hook) { showToast('文案內容不能是空的'); return; }
+
+  const data = load();
+  if (!data.captions) data.captions = [];
+  data.captions.unshift({
+    id: 'cap_' + Date.now(),
+    hook, content, status: 'draft',
+    scheduledDate: schedDate, postType, materials,
+    sourceDiary: srcDiary,
+    createdAt: new Date().toISOString()
+  });
+  save(data);
+
+  ['cap-hook-input','cap-content-input','cap-materials-input'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['cap-date-input','cap-type-input','cap-source-input'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+
+  showToast('文案已存入文案庫 ✓');
+  renderCaptions();
+}
+
+// ═══════════════════════════════════════
+// TAB 5: 目標
+// ═══════════════════════════════════════
+
+function renderGoals() {
+  const data = load();
+  const goals = data.goals || { countdowns: [], milestones: [] };
+
+  // Countdowns
+  const cdList = document.getElementById('countdowns-list');
+  const cds = goals.countdowns || [];
+  if (!cds.length) {
+    cdList.innerHTML = '<div class="text-sm" style="margin-bottom:12px; color:var(--muted);">還沒有倒數目標</div>';
+  } else {
+    const now = new Date();
+    cdList.innerHTML = cds.map(cd => {
+      const days = Math.ceil((new Date(cd.date) - now) / 86400000);
+      const numStr = days > 0 ? days : (days === 0 ? '0' : '✓');
+      const unitStr = days >= 0 ? '天' : '已達成';
+      return `
+        <div class="cd-card">
+          <div style="text-align:center; min-width:60px;">
+            <div class="cd-num">${numStr}</div>
+            <div class="cd-unit">${unitStr}</div>
+          </div>
+          <div style="flex:1;">
+            <div class="cd-name">${cd.name}</div>
+            <div class="cd-date">${cd.date.replace(/-/g,'/')}</div>
+          </div>
+          <button class="ms-del" onclick="deleteCountdown('${cd.id}')">×</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Milestones
+  const msList = document.getElementById('goal-milestones');
+  const ms = goals.milestones || [];
+  if (!ms.length) {
+    msList.innerHTML = '<div class="text-sm" style="color:var(--muted); padding:8px 0;">還沒有里程碑</div>';
+  } else {
+    msList.innerHTML = ms.map(m => `
+      <div class="ms-item">
+        <div class="ms-check ${m.done ? 'done' : ''}" onclick="toggleGoalMs('${m.id}')">${m.done ? '✓' : ''}</div>
+        <div class="ms-label ${m.done ? 'done' : ''}">${m.label}</div>
+        <button class="ms-del" onclick="deleteGoalMs('${m.id}')">×</button>
+      </div>
+    `).join('');
+  }
+}
+
+function addCountdown() {
+  const name = document.getElementById('cd-name-input').textContent.trim();
+  const date = document.getElementById('cd-date-input').value;
+  if (!name) { showToast('請輸入目標名稱'); return; }
+  if (!date) { showToast('請選擇目標日期'); return; }
+
+  const data = load();
+  if (!data.goals) data.goals = { countdowns: [], milestones: [] };
+  if (!data.goals.countdowns) data.goals.countdowns = [];
+  data.goals.countdowns.push({ id: 'cd_' + Date.now(), name, date });
+  save(data);
+  renderGoals();
+  document.getElementById('cd-name-input').textContent = '';
+  document.getElementById('cd-date-input').value = '';
+  showToast('已新增倒數 ✓');
+}
+
+function deleteCountdown(id) {
+  const data = load();
+  data.goals.countdowns = data.goals.countdowns.filter(c => c.id !== id);
+  save(data);
+  renderGoals();
+  showToast('已刪除');
+}
+
+function toggleGoalMs(id) {
+  const data = load();
+  const m = data.goals.milestones.find(x => x.id === id);
+  if (m) m.done = !m.done;
+  save(data);
+  renderGoals();
+}
+
+function deleteGoalMs(id) {
+  const data = load();
+  data.goals.milestones = data.goals.milestones.filter(x => x.id !== id);
+  save(data);
+  renderGoals();
+}
+
+function addGoalMs() {
+  const input = document.getElementById('goal-ms-input');
+  const label = input.textContent.trim();
+  if (!label) { showToast('請輸入里程碑內容'); return; }
+  const data = load();
+  if (!data.goals.milestones) data.goals.milestones = [];
+  data.goals.milestones.push({ id: 'm' + Date.now(), label, done: false });
+  save(data);
+  renderGoals();
+  input.textContent = '';
+  showToast('已新增 ✓');
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+
+document.getElementById('goal-ms-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addGoalMs(); }
+});
+document.getElementById('cd-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('cd-date-input').focus(); }
+});
+
+// ═══════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCmBZN62CWZaOm90he-nR3rJzUd7OhypA8",
+  authDomain: "healing-journal-3af42.firebaseapp.com",
+  databaseURL: "https://healing-journal-3af42-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "healing-journal-3af42",
+  storageBucket: "healing-journal-3af42.firebasestorage.app",
+  messagingSenderId: "307898142625",
+  appId: "1:307898142625:web:a60912e5b163a2773f45e0"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).catch(() => showToast('登入失敗，請再試一次'));
+}
+
+function signOut() {
+  if (confirm('確定要登出嗎？')) firebase.auth().signOut();
+}
+
+firebase.auth().onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('user-email').textContent = user.email;
+
+    try {
+      const snapshot = await userRef().once('value');
+      DATA = snapshot.val() || initData();
+      if (!DATA.captions) DATA.captions = [];
+      if (!DATA.goals) DATA.goals = initData().goals;
+    } catch(e) {
+      DATA = initData();
+    }
+
+    // 一次性 localStorage 搬移
+    const local = localStorage.getItem('sk_journal_v2');
+    if (local) {
+      try {
+        const localData = JSON.parse(local);
+        if (!localData.captions) localData.captions = [];
+        if (!localData.goals) {
+          const oldMs = localData.brand?.milestones || [];
+          localData.goals = {
+            countdowns: [{ id: 'cd_resign', name: '離職倒數', date: '2026-12-31' }],
+            milestones: oldMs.length ? oldMs : initData().goals.milestones
+          };
+        }
+        if (localData.entries?.length > 0) {
+          if (confirm(`發現本機有 ${localData.entries.length} 則日記，要搬移到雲端嗎？`)) {
+            localData.entries.forEach(e => {
+              if (!DATA.entries.find(x => x.date === e.date)) DATA.entries.push(e);
+            });
+            DATA.entries.sort((a, b) => b.date.localeCompare(a.date));
+            await userRef().set(DATA);
+            showToast('本機日記已搬移完成 ✓');
+          }
+        }
+        localStorage.removeItem('sk_journal_v2');
+      } catch(e) {}
+    }
+
+    // 顯示介面
+    document.getElementById('signin-overlay').style.display = 'none';
+    document.getElementById('main-content').style.display = '';
+    document.getElementById('app-tabbar').style.display = '';
+
+    const dateInput = document.getElementById('journal-date');
+    dateInput.value = today();
+    dateInput.max = today();
+    document.getElementById('journal-date-label').textContent = fmtDate(today());
+
+  } else {
+    currentUser = null;
+    DATA = null;
+    document.getElementById('signin-overlay').style.display = 'flex';
+    document.getElementById('main-content').style.display = 'none';
+    document.getElementById('app-tabbar').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
