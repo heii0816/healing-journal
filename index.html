@@ -1072,16 +1072,25 @@ function editEntry(date) {
   const e = load().entries.find(x => x.date === date);
   if (!e) return;
 
+  const chakraBtns = CHAKRAS.map(c => {
+    const sel = (e.chakras || []).includes(c.id);
+    return `<button onclick="toggleManualChakra(this,'${c.id}')" data-id="${c.id}" data-active="${sel ? '1' : ''}"
+      style="padding:7px 12px; border-radius:20px; border:1.5px solid ${sel ? c.color : 'var(--border)'}; background:${sel ? c.color + '22' : 'transparent'}; color:${sel ? c.color : 'var(--text)'}; font-size:13px; cursor:pointer; transition:all 0.2s;">
+      ${c.emoji} ${c.name}
+    </button>`;
+  }).join('');
+
   document.getElementById('modal-body').innerHTML = `
     <div class="section-label" style="margin-bottom:14px;">${fmtDate(e.date)}</div>
     <div class="section-label" style="font-size:11px; margin-bottom:6px; color:var(--muted);">日記內容</div>
     <textarea id="edit-text"
       style="width:100%; min-height:160px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:14px; line-height:1.8; resize:none; box-sizing:border-box;"
-      oninput="autoResize(this)">${e.text}</textarea>
-    <div class="btn-row" style="margin-top:12px;">
-      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="redetectChakras('${date}')">重新偵測脈輪</button>
+      oninput="autoResize(this)"></textarea>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px; margin-bottom:8px;">
+      <div class="section-label" style="font-size:11px; margin:0; color:var(--muted);">脈輪標記（可多選）</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="autoToggleChakras()">根據日記重新偵測</button>
     </div>
-    <div id="edit-detect-box" style="display:none; background:rgba(255,255,255,0.03); border-radius:12px; padding:16px; margin-top:12px;"></div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;" id="edit-chakra-picker">${chakraBtns}</div>
     <div class="divider"></div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openEntry('${date}')">取消</button>
@@ -1090,70 +1099,35 @@ function editEntry(date) {
     <div style="height:20px;"></div>
   `;
   const ta = document.getElementById('edit-text');
+  ta.value = e.text;
   setTimeout(() => autoResize(ta), 0);
 }
 
-function redetectChakras(date) {
-  const text = document.getElementById('edit-text').value.trim();
+function autoToggleChakras() {
+  const text = document.getElementById('edit-text')?.value.trim();
   if (!text) { showToast('請先輸入日記內容'); return; }
-
-  const results = detectChakras(text);
-  const box = document.getElementById('edit-detect-box');
-  box.style.display = 'block';
-
-  if (!results.length) {
-    box.innerHTML = `
-      <div class="section-label" style="margin-bottom:10px;">脈輪偵測</div>
-      <div class="text-sm" style="margin-bottom:14px; color:var(--muted); line-height:1.7;">這次沒有偵測到特定關鍵字。<br>你覺得比較靠近哪個脈輪？（可多選）</div>
-      <div style="display:flex; flex-wrap:wrap; gap:8px;" id="edit-manual-picker">
-        ${CHAKRAS.map(c => `
-          <button onclick="toggleManualChakra(this,'${c.id}')" data-id="${c.id}"
-            style="padding:7px 12px; border-radius:20px; border:1.5px solid var(--border); background:transparent; color:var(--text); font-size:13px; cursor:pointer; transition:all 0.2s;">
-            ${c.emoji} ${c.name}
-          </button>
-        `).join('')}
-      </div>
-    `;
-  } else {
-    box.innerHTML = `
-      <div class="section-label" style="margin-bottom:14px;">脈輪偵測結果</div>
-      ${results.map((c, i) => `
-        <div style="margin-bottom:${i < results.length - 1 ? '20px' : '0'};">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:22px;">${c.emoji}</span>
-            <div>
-              <div style="font-weight:600; font-size:15px; color:${c.color};">${c.name}</div>
-              <div class="text-xs">${c.desc}</div>
-            </div>
-          </div>
-          ${c.hits.length ? `<div style="background:${c.color}12; border-left:3px solid ${c.color}; padding:10px 12px; border-radius:0 8px 8px 0; margin-bottom:8px;">
-            <div class="text-xs" style="margin-bottom:4px; color:var(--muted);">日記中的線索</div>
-            <div style="font-size:13px;">「${c.hits.join('」、「')}」等字詞</div>
-          </div>` : ''}
-          <div style="font-size:13px; line-height:1.6; color:var(--muted);">
-            <span style="color:${c.color}; font-weight:500;">失衡時：</span>${c.blockDesc}
-          </div>
-        </div>
-      `).join('<div class="divider"></div>')}
-    `;
-  }
+  const detected = detectChakras(text).map(c => c.id);
+  document.getElementById('edit-chakra-picker').querySelectorAll('button').forEach(btn => {
+    const id = btn.dataset.id;
+    const on = detected.includes(id);
+    btn.dataset.active = on ? '1' : '';
+    const c = CHAKRAS.find(x => x.id === id);
+    btn.style.background = on ? c.color + '22' : 'transparent';
+    btn.style.borderColor = on ? c.color : 'var(--border)';
+    btn.style.color = on ? c.color : 'var(--text)';
+  });
+  showToast(detected.length ? `偵測到 ${detected.map(id => CHAKRAS.find(c=>c.id===id)?.name).join('、')}` : '沒有偵測到關鍵字，請手動選擇');
 }
 
 function saveEntryEdit(date) {
   const text = document.getElementById('edit-text').value.trim();
   if (!text) { showToast('日記內容不能是空的'); return; }
-
-  const autoChakras = detectChakras(text).map(c => c.id);
-  const picker = document.getElementById('edit-manual-picker');
-  const manualChakras = picker ? [...picker.querySelectorAll('button[data-active="1"]')].map(b => b.dataset.id) : [];
-  const chakras = autoChakras.length ? autoChakras : manualChakras;
-
+  const chakras = [...document.getElementById('edit-chakra-picker').querySelectorAll('button[data-active="1"]')].map(b => b.dataset.id);
   const data = load();
   const idx = data.entries.findIndex(x => x.date === date);
   if (idx === -1) return;
   data.entries[idx] = { ...data.entries[idx], text, chakras };
   save(data);
-
   showToast('修改已儲存 ✓');
   renderArchive();
   openEntry(date);
@@ -1302,7 +1276,10 @@ function openCaption(id) {
   document.getElementById('modal-body').innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
       <span class="chakra-tag ${st.cls}">${st.label}</span>
-      ${nextLabel ? `<button class="btn btn-ghost btn-sm" onclick="advanceCaptionStatus('${id}')">→ 標為「${nextLabel}」</button>` : ''}
+      <div style="display:flex; gap:6px;">
+        ${nextLabel ? `<button class="btn btn-ghost btn-sm" onclick="advanceCaptionStatus('${id}')">→ ${nextLabel}</button>` : ''}
+        <button class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="editCaption('${id}')">✏️ 編輯</button>
+      </div>
     </div>
     ${c.hook ? `<div style="font-size:15px; font-weight:600; line-height:1.5; margin-bottom:12px;">${c.hook}</div>` : ''}
     ${c.scheduledDate ? `<div class="text-xs" style="margin-bottom:6px;">預排：${c.scheduledDate}</div>` : ''}
@@ -1316,6 +1293,74 @@ function openCaption(id) {
     <div style="height:20px;"></div>
   `;
   document.getElementById('modal').classList.add('open');
+}
+
+function editCaption(id) {
+  const c = load().captions.find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="section-label" style="margin-bottom:14px;">編輯文案</div>
+
+    <div class="section-label" style="font-size:11px; color:var(--muted); margin-bottom:4px;">Hook／標題</div>
+    <input id="ecap-hook" type="text" style="width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:14px; box-sizing:border-box; margin-bottom:12px;">
+
+    <div class="section-label" style="font-size:11px; color:var(--muted); margin-bottom:4px;">完整文案</div>
+    <textarea id="ecap-content" style="width:100%; min-height:200px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:14px; line-height:1.8; resize:none; box-sizing:border-box;" oninput="autoResize(this)"></textarea>
+
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <div style="flex:1;">
+        <div class="section-label" style="font-size:11px; color:var(--muted); margin-bottom:4px;">預排日期</div>
+        <input id="ecap-date" type="date" style="width:100%; background:rgba(30,20,40,1); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:14px; box-sizing:border-box;">
+      </div>
+      <div style="flex:1;">
+        <div class="section-label" style="font-size:11px; color:var(--muted); margin-bottom:4px;">貼文形式</div>
+        <select id="ecap-type" style="width:100%; background:rgba(30,20,40,1); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:14px; box-sizing:border-box;">
+          <option value="carousel">輪播</option>
+          <option value="single">單圖</option>
+          <option value="reels">Reels</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label" style="font-size:11px; color:var(--muted); margin-top:12px; margin-bottom:4px;">素材備注</div>
+    <textarea id="ecap-materials" style="width:100%; min-height:60px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:14px; resize:none; box-sizing:border-box;" oninput="autoResize(this)"></textarea>
+
+    <div class="divider"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openCaption('${id}')">取消</button>
+      <button class="btn btn-primary btn-sm" style="flex:1;" onclick="saveCaptionEdit('${id}')">儲存修改</button>
+    </div>
+    <div style="height:20px;"></div>
+  `;
+
+  document.getElementById('ecap-hook').value = c.hook || '';
+  document.getElementById('ecap-content').value = c.content || '';
+  document.getElementById('ecap-date').value = c.scheduledDate || '';
+  document.getElementById('ecap-type').value = c.postType || 'carousel';
+  document.getElementById('ecap-materials').value = c.materials || '';
+  setTimeout(() => {
+    autoResize(document.getElementById('ecap-content'));
+    autoResize(document.getElementById('ecap-materials'));
+  }, 0);
+}
+
+function saveCaptionEdit(id) {
+  const data = load();
+  const idx = data.captions.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  data.captions[idx] = {
+    ...data.captions[idx],
+    hook: document.getElementById('ecap-hook').value.trim(),
+    content: document.getElementById('ecap-content').value.trim(),
+    scheduledDate: document.getElementById('ecap-date').value,
+    postType: document.getElementById('ecap-type').value,
+    materials: document.getElementById('ecap-materials').value.trim(),
+  };
+  save(data);
+  showToast('文案已儲存 ✓');
+  renderCaptions();
+  openCaption(id);
 }
 
 function advanceCaptionStatus(id) {
