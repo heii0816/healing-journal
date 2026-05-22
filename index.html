@@ -1244,8 +1244,10 @@ function renderChakra() {
 
   const max = Math.max(...Object.values(counts), 1);
 
-  const CX = 88;
-  const CHAKRA_Y = { root:243, sacral:204, solar:168, heart:132, throat:90, thirdEye:48, crown:22 };
+  // 打坐人形，CX = 中心 x
+  const CX = 140;
+  const CHAKRA_Y    = { root:218, sacral:182, solar:150, heart:116, throat:82, thirdEye:44, crown:16 };
+  const CHAKRA_SIDE = { root:'right', sacral:'left', solar:'right', heart:'left', throat:'right', thirdEye:'left', crown:'right' };
 
   const glowDefs = CHAKRAS.filter(c => counts[c.id] > 0).map(c =>
     `<filter id="cg${c.id}" x="-100%" y="-100%" width="300%" height="300%">
@@ -1254,33 +1256,43 @@ function renderChakra() {
     </filter>`
   ).join('');
 
-  const bodyPath = `<g stroke="rgba(255,255,255,0.09)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="${CX}" cy="50" rx="22" ry="27"/>
-    <path d="M81,76 L81,91 L95,91 L95,76"/>
-    <path d="M81,91 Q52,97 49,118 L47,212 Q50,247 ${CX},251 Q126,247 129,212 L127,118 Q124,97 95,91"/>
-    <path d="M49,118 Q37,148 35,182 L36,212"/>
-    <path d="M127,118 Q139,148 141,182 L140,212"/>
-    <path d="M68,250 Q64,308 62,390"/>
-    <path d="M108,250 Q112,308 114,390"/>
+  // 打坐蓮花坐輪廓
+  const bodyPath = `<g stroke="rgba(255,255,255,0.11)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="${CX}" cy="43" rx="21" ry="24"/>
+    <path d="M131,66 L131,78 L149,78 L149,66"/>
+    <path d="M131,78 Q105,85 86,108 Q72,135 70,178 L74,218 Q88,256 ${CX},260 Q192,256 206,218 L210,178 Q208,135 194,108 Q175,85 149,78"/>
+    <path d="M86,108 Q58,140 52,182 L60,228"/>
+    <path d="M194,108 Q222,140 228,182 L220,228"/>
+    <path d="M60,232 Q82,272 ${CX},276 Q198,272 220,232"/>
   </g>`;
 
   const chakraEls = CHAKRAS.map(c => {
-    const cnt = counts[c.id];
-    const y   = CHAKRA_Y[c.id];
-    const r   = cnt > 0 ? (6 + (cnt / max) * 14) : 6;
-    const fOp = cnt > 0 ? (0.18 + (cnt / max) * 0.57).toFixed(2) : '0';
-    const sOp = cnt > 0 ? '0.85' : '0.18';
+    const cnt  = counts[c.id];
+    const y    = CHAKRA_Y[c.id];
+    const side = CHAKRA_SIDE[c.id];
+    const r    = cnt > 0 ? (8 + (cnt / max) * 15) : 7;
+    const fOp  = cnt > 0 ? (0.18 + (cnt / max) * 0.57).toFixed(2) : '0';
+    const sOp  = cnt > 0 ? '0.85' : '0.2';
+
+    const lx1   = side === 'right' ? CX + r + 3 : CX - r - 3;
+    const lx2   = side === 'right' ? 200 : 80;
+    const textX = side === 'right' ? 204 : 76;
+    const anchor = side === 'right' ? 'start' : 'end';
+    const lop   = cnt > 0 ? '0.5' : '0.18';
+    const top   = cnt > 0 ? '0.7' : '0.28';
+
     return `
       <circle cx="${CX}" cy="${y}" r="${r.toFixed(1)}"
         fill="${c.color}" fill-opacity="${fOp}"
         stroke="${c.color}" stroke-opacity="${sOp}" stroke-width="1.5"
         ${cnt > 0 ? `filter="url(#cg${c.id})"` : ''}/>
-      ${cnt > 0 ? `<text x="${CX}" y="${y + 4}" text-anchor="middle" font-size="9" fill="${c.color}" fill-opacity="0.95" font-weight="700">${cnt}</text>` : ''}
-      <text x="136" y="${y + 4}" font-size="11" fill="rgba(255,255,255,${cnt > 0 ? '0.65' : '0.22'})">${c.emoji} ${c.name}</text>`;
+      ${cnt > 0 ? `<text x="${CX}" y="${y + 4}" text-anchor="middle" font-size="10" fill="white" font-weight="700">${cnt}</text>` : ''}
+      <line x1="${lx1.toFixed(1)}" y1="${y}" x2="${lx2}" y2="${y}" stroke="${c.color}" stroke-opacity="${lop}" stroke-width="0.8"/>
+      <text x="${textX}" y="${y + 4}" text-anchor="${anchor}" font-size="12" fill="rgba(255,255,255,${top})" font-weight="${cnt > 0 ? '500' : '400'}">${c.emoji} ${c.name}</text>`;
   }).join('');
 
   document.getElementById('chakra-chart').innerHTML = `
-    <svg viewBox="0 0 218 400" width="100%" style="display:block; overflow:visible;">
+    <svg viewBox="0 0 280 288" width="100%" style="display:block; overflow:visible;">
       <defs>${glowDefs}</defs>
       ${bodyPath}
       ${chakraEls}
