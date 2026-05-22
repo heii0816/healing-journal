@@ -1773,22 +1773,15 @@ firebase.initializeApp(firebaseConfig);
 
 function signIn() {
   const ua = navigator.userAgent;
-  // LINE / Instagram / Facebook in-app browser 無法完成 OAuth，引導改用外部瀏覽器
   if (/Line\/|FBAN|FBAV|Instagram/i.test(ua)) {
     alert('請用 Safari 或 Chrome 開啟此頁面，再進行 Google 登入\n\n點右上角選單 → 「在瀏覽器中開啟」');
     return;
   }
   const provider = new firebase.auth.GoogleAuthProvider();
-  // 手機瀏覽器改用 redirect 避免 sessionStorage 被清除的問題
-  if (/iPhone|iPad|iPod|Android/i.test(ua)) {
-    firebase.auth().signInWithRedirect(provider).catch(() => showToast('登入失敗，請再試一次'));
-  } else {
-    firebase.auth().signInWithPopup(provider).catch(() => showToast('登入失敗，請再試一次'));
-  }
+  firebase.auth().signInWithPopup(provider).catch(err => {
+    if (err.code !== 'auth/popup-closed-by-user') showToast('登入失敗，請再試一次');
+  });
 }
-
-// 處理手機 redirect 登入的回呼
-firebase.auth().getRedirectResult().catch(() => showToast('登入失敗，請再試一次'));
 
 function signOut() {
   if (confirm('確定要登出嗎？')) firebase.auth().signOut();
