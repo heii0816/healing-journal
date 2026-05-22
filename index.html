@@ -1053,7 +1053,10 @@ function openEntry(date) {
   }).join(' ');
 
   document.getElementById('modal-body').innerHTML = `
-    <div class="section-label">${fmtDate(e.date)}</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div class="section-label" style="margin:0;">${fmtDate(e.date)}</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="editEntry('${date}')">✏️ 編輯</button>
+    </div>
     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">${tags || '<span class="text-xs">無脈輪標記</span>'}</div>
     <div style="font-size:15px; line-height:1.8; white-space:pre-wrap; margin-bottom:4px;">${e.text}</div>
     ${e.analysis ? `<div class="divider"></div><div class="section-label">脈輪分析</div><div style="font-size:14px; line-height:1.7; color:var(--muted); white-space:pre-wrap;">${e.analysis}</div>` : ''}
@@ -1063,6 +1066,97 @@ function openEntry(date) {
     <div style="height:20px;"></div>
   `;
   document.getElementById('modal').classList.add('open');
+}
+
+function editEntry(date) {
+  const e = load().entries.find(x => x.date === date);
+  if (!e) return;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="section-label" style="margin-bottom:14px;">${fmtDate(e.date)}</div>
+    <div class="section-label" style="font-size:11px; margin-bottom:6px; color:var(--muted);">日記內容</div>
+    <textarea id="edit-text"
+      style="width:100%; min-height:160px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:14px; line-height:1.8; resize:none; box-sizing:border-box;"
+      oninput="autoResize(this)">${e.text}</textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="redetectChakras('${date}')">重新偵測脈輪</button>
+    </div>
+    <div id="edit-detect-box" style="display:none; background:rgba(255,255,255,0.03); border-radius:12px; padding:16px; margin-top:12px;"></div>
+    <div class="divider"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openEntry('${date}')">取消</button>
+      <button class="btn btn-primary btn-sm" style="flex:1;" onclick="saveEntryEdit('${date}')">儲存修改</button>
+    </div>
+    <div style="height:20px;"></div>
+  `;
+  const ta = document.getElementById('edit-text');
+  setTimeout(() => autoResize(ta), 0);
+}
+
+function redetectChakras(date) {
+  const text = document.getElementById('edit-text').value.trim();
+  if (!text) { showToast('請先輸入日記內容'); return; }
+
+  const results = detectChakras(text);
+  const box = document.getElementById('edit-detect-box');
+  box.style.display = 'block';
+
+  if (!results.length) {
+    box.innerHTML = `
+      <div class="section-label" style="margin-bottom:10px;">脈輪偵測</div>
+      <div class="text-sm" style="margin-bottom:14px; color:var(--muted); line-height:1.7;">這次沒有偵測到特定關鍵字。<br>你覺得比較靠近哪個脈輪？（可多選）</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;" id="edit-manual-picker">
+        ${CHAKRAS.map(c => `
+          <button onclick="toggleManualChakra(this,'${c.id}')" data-id="${c.id}"
+            style="padding:7px 12px; border-radius:20px; border:1.5px solid var(--border); background:transparent; color:var(--text); font-size:13px; cursor:pointer; transition:all 0.2s;">
+            ${c.emoji} ${c.name}
+          </button>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    box.innerHTML = `
+      <div class="section-label" style="margin-bottom:14px;">脈輪偵測結果</div>
+      ${results.map((c, i) => `
+        <div style="margin-bottom:${i < results.length - 1 ? '20px' : '0'};">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:22px;">${c.emoji}</span>
+            <div>
+              <div style="font-weight:600; font-size:15px; color:${c.color};">${c.name}</div>
+              <div class="text-xs">${c.desc}</div>
+            </div>
+          </div>
+          ${c.hits.length ? `<div style="background:${c.color}12; border-left:3px solid ${c.color}; padding:10px 12px; border-radius:0 8px 8px 0; margin-bottom:8px;">
+            <div class="text-xs" style="margin-bottom:4px; color:var(--muted);">日記中的線索</div>
+            <div style="font-size:13px;">「${c.hits.join('」、「')}」等字詞</div>
+          </div>` : ''}
+          <div style="font-size:13px; line-height:1.6; color:var(--muted);">
+            <span style="color:${c.color}; font-weight:500;">失衡時：</span>${c.blockDesc}
+          </div>
+        </div>
+      `).join('<div class="divider"></div>')}
+    `;
+  }
+}
+
+function saveEntryEdit(date) {
+  const text = document.getElementById('edit-text').value.trim();
+  if (!text) { showToast('日記內容不能是空的'); return; }
+
+  const autoChakras = detectChakras(text).map(c => c.id);
+  const picker = document.getElementById('edit-manual-picker');
+  const manualChakras = picker ? [...picker.querySelectorAll('button[data-active="1"]')].map(b => b.dataset.id) : [];
+  const chakras = autoChakras.length ? autoChakras : manualChakras;
+
+  const data = load();
+  const idx = data.entries.findIndex(x => x.date === date);
+  if (idx === -1) return;
+  data.entries[idx] = { ...data.entries[idx], text, chakras };
+  save(data);
+
+  showToast('修改已儲存 ✓');
+  renderArchive();
+  openEntry(date);
 }
 
 function copyCaption(date) {
