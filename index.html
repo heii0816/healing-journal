@@ -460,7 +460,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cur
 
     <div class="card">
       <div class="section-label">日期</div>
-      <input type="date" id="journal-date" style="margin-bottom:16px;" onchange="onDateChange()">
+      <div style="width:100%; overflow:hidden; margin-bottom:16px;">
+        <input type="date" id="journal-date" style="margin-bottom:0;" onchange="onDateChange()">
+      </div>
       <div class="section-label">寫下這天</div>
       <textarea id="diary-input" placeholder="今天發生了什麼？身體有什麼感覺？心情是怎樣的？" oninput="autoResize(this)"></textarea>
       <div class="btn-row">
